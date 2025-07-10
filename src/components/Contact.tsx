@@ -229,8 +229,8 @@ export default function Contact() {
                 </div>
               </div>
               <p className="text-gray-300 mb-8 leading-relaxed">
-                I'm actively seeking internship opportunities and exciting projects to work on. 
-                As a computer engineering student passionate about development, I'm eager to contribute 
+                I&apos;m actively seeking internship opportunities and exciting projects to work on. 
+                As a computer engineering student passionate about development, I&apos;m eager to contribute 
                 to innovative solutions and learn from experienced professionals.
               </p>
               
@@ -286,7 +286,7 @@ export default function Contact() {
                   <CheckCircle className="w-5 h-5 mr-3 flex-shrink-0" />
                   <div>
                     <p className="font-medium">Message sent successfully!</p>
-                    <p className="text-sm text-green-300">I'll get back to you within 24 hours.</p>
+                    <p className="text-sm text-green-300">I&apos;ll get back to you within 24 hours.</p>
                   </div>
                 </motion.div>
               )}

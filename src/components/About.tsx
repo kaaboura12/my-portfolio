@@ -130,7 +130,7 @@ const interests = [
 export default function About() {
   const ref = useRef(null)
   const isInView = useInView(ref, { once: true, amount: 0.2 })
-  const [hoveredSkill, setHoveredSkill] = useState<string | null>(null)
+  const [, setHoveredSkill] = useState<string | null>(null)
 
   const containerVariants = {
     hidden: { opacity: 0 },

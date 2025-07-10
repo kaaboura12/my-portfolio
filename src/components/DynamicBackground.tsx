@@ -47,7 +47,7 @@ export default function DynamicBackground() {
   const addCleanup = useMemoryCleanup([])
   
   const [particles, setParticles] = useState<Particle[]>([])
-  const [floatingShapes, setFloatingShapes] = useState<FloatingShape[]>([])
+  const [, setFloatingShapes] = useState<FloatingShape[]>([])
   const [mousePosition, setMousePosition] = useState({ x: 50, y: 50 })
   const [isMouseMoving, setIsMouseMoving] = useState(false)
   const [isTabVisible, setIsTabVisible] = useState(true)
