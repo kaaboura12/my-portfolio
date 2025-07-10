@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
+import React, { useEffect, useRef, useCallback, useState } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
 import { useIntersectionObserver, throttle, useMemoryCleanup } from '../utils/performance'
 
@@ -21,10 +21,9 @@ interface FloatingShape {
   x: number
   y: number
   size: number
-  rotation: number
   color: string
-  shape: 'circle' | 'square' | 'triangle'
-  opacity: number
+  duration: number
+  delay: number
 }
 
 interface Node {
@@ -34,17 +33,24 @@ interface Node {
   vy: number
 }
 
-// Performance constants
-const PARTICLE_COUNT = 12 // Reduced from 25
-const NODE_COUNT = 8 // Reduced from 15
-const MAX_CONNECTION_DISTANCE = 120 // Reduced from 150
-const MOUSE_MOVE_THROTTLE = 16 // ~60fps
-const ANIMATION_THROTTLE = 16 // ~60fps
+// Mobile detection
+const isMobile = () => {
+  if (typeof window === 'undefined') return false
+  return window.innerWidth < 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+}
+
+// Performance constants - more aggressive for mobile
+const PARTICLE_COUNT = isMobile() ? 3 : 8 // Drastically reduced for mobile
+const NODE_COUNT = isMobile() ? 3 : 6 // Reduced for mobile
+const MAX_CONNECTION_DISTANCE = isMobile() ? 80 : 100 // Reduced for mobile
+const MOUSE_MOVE_THROTTLE = isMobile() ? 100 : 16 // Much slower on mobile
+const ANIMATION_THROTTLE = isMobile() ? 100 : 16 // Much slower on mobile
 
 export default function DynamicBackground() {
   const shouldReduceMotion = useReducedMotion()
   const { ref, isVisible } = useIntersectionObserver(0.1)
   const addCleanup = useMemoryCleanup([])
+  const [isMobileDevice, setIsMobileDevice] = useState(false)
   
   const [particles, setParticles] = useState<Particle[]>([])
   const [, setFloatingShapes] = useState<FloatingShape[]>([])
@@ -59,40 +65,41 @@ export default function DynamicBackground() {
   const nodesRef = useRef<Node[]>([])
   const lastFrameTimeRef = useRef(0)
 
-  // Mark component as mounted to avoid hydration issues
+  // Detect mobile device
   useEffect(() => {
+    setIsMobileDevice(isMobile())
     setIsMounted(true)
   }, [])
 
   // Generate particles only after component mounts (client-side only)
   const generateParticles = useCallback(() => {
-    if (shouldReduceMotion || !isMounted) return []
+    if (shouldReduceMotion || !isMounted || isMobileDevice) return []
     
     const colors = ['#6366f1', '#06b6d4', '#f59e0b', '#ec4899', '#8b5cf6']
     return Array.from({ length: PARTICLE_COUNT }, (_, i) => ({
       id: i,
       x: Math.random() * 100,
       y: Math.random() * 100,
-      size: Math.random() * 2 + 1, // Reduced size
+      size: Math.random() * 1.5 + 0.5, // Smaller particles
       color: colors[Math.floor(Math.random() * colors.length)],
-      duration: Math.random() * 10 + 8, // Reduced duration
-      delay: Math.random() * 3,
-      vx: (Math.random() - 0.5) * 0.3,
-      vy: (Math.random() - 0.5) * 0.3,
+      duration: Math.random() * 8 + 6, // Shorter duration
+      delay: Math.random() * 2,
+      vx: (Math.random() - 0.5) * 0.2,
+      vy: (Math.random() - 0.5) * 0.2,
     }))
-  }, [shouldReduceMotion, isMounted])
+  }, [shouldReduceMotion, isMounted, isMobileDevice])
 
-  // Initialize particles only after mount
+  // Initialize particles only after mount and if not mobile
   useEffect(() => {
-    if (isMounted) {
+    if (isMounted && !isMobileDevice) {
       setParticles(generateParticles())
     }
-  }, [isMounted, generateParticles])
+  }, [isMounted, generateParticles, isMobileDevice])
 
-  // Throttled mouse move handler
+  // Throttled mouse move handler - disabled on mobile
   const handleMouseMove = useCallback(
     throttle((e: MouseEvent) => {
-      if (!isVisible || shouldReduceMotion) return
+      if (!isVisible || shouldReduceMotion || isMobileDevice) return
       
       setMousePosition({
         x: (e.clientX / window.innerWidth) * 100,
@@ -106,14 +113,14 @@ export default function DynamicBackground() {
 
       mouseMoveTimeoutRef.current = setTimeout(() => {
         setIsMouseMoving(false)
-      }, 200)
+      }, 500)
     }, MOUSE_MOVE_THROTTLE),
-    [isVisible, shouldReduceMotion]
+    [isVisible, shouldReduceMotion, isMobileDevice]
   )
 
-  // Mouse move event listener
+  // Mouse move event listener - disabled on mobile
   useEffect(() => {
-    if (shouldReduceMotion) return
+    if (shouldReduceMotion || isMobileDevice) return
 
     window.addEventListener('mousemove', handleMouseMove, { passive: true })
     addCleanup(() => window.removeEventListener('mousemove', handleMouseMove))
@@ -123,7 +130,7 @@ export default function DynamicBackground() {
         clearTimeout(mouseMoveTimeoutRef.current)
       }
     }
-  }, [handleMouseMove, shouldReduceMotion, addCleanup])
+  }, [handleMouseMove, shouldReduceMotion, addCleanup, isMobileDevice])
 
   // Tab visibility detection
   useEffect(() => {
@@ -135,9 +142,9 @@ export default function DynamicBackground() {
     addCleanup(() => document.removeEventListener('visibilitychange', handleVisibilityChange))
   }, [addCleanup])
 
-  // Optimized canvas animation
+  // Optimized canvas animation - disabled on mobile
   useEffect(() => {
-    if (shouldReduceMotion || !isVisible || !isMounted) return
+    if (shouldReduceMotion || !isVisible || !isMounted || isMobileDevice) return
 
     const canvas = canvasRef.current
     if (!canvas) return
@@ -146,7 +153,7 @@ export default function DynamicBackground() {
     if (!ctx) return
 
     const resizeCanvas = () => {
-      const dpr = window.devicePixelRatio || 1
+      const dpr = Math.min(window.devicePixelRatio || 1, 2) // Limit DPR for performance
       canvas.width = window.innerWidth * dpr
       canvas.height = window.innerHeight * dpr
       canvas.style.width = `${window.innerWidth}px`
@@ -160,8 +167,8 @@ export default function DynamicBackground() {
     nodesRef.current = Array.from({ length: NODE_COUNT }, () => ({
       x: Math.random() * window.innerWidth,
       y: Math.random() * window.innerHeight,
-      vx: (Math.random() - 0.5) * 0.5,
-      vy: (Math.random() - 0.5) * 0.5,
+      vx: (Math.random() - 0.5) * 0.3,
+      vy: (Math.random() - 0.5) * 0.3,
     }))
 
     const animate = (currentTime: number) => {
@@ -170,7 +177,7 @@ export default function DynamicBackground() {
         return
       }
 
-      // Throttle animation to ~60fps
+      // Throttle animation
       if (currentTime - lastFrameTimeRef.current < ANIMATION_THROTTLE) {
         animationRef.current = requestAnimationFrame(animate)
         return
@@ -201,10 +208,10 @@ export default function DynamicBackground() {
           const distance = Math.sqrt(dx * dx + dy * dy)
           
           if (distance < MAX_CONNECTION_DISTANCE) {
-            const opacity = (1 - distance / MAX_CONNECTION_DISTANCE) * 0.3
+            const opacity = (1 - distance / MAX_CONNECTION_DISTANCE) * 0.2
             ctx.globalAlpha = opacity
             ctx.strokeStyle = '#6366f1'
-            ctx.lineWidth = 1
+            ctx.lineWidth = 0.5
             ctx.beginPath()
             ctx.moveTo(node.x, node.y)
             ctx.lineTo(otherNode.x, otherNode.y)
@@ -213,10 +220,10 @@ export default function DynamicBackground() {
         }
 
         // Draw node
-        ctx.globalAlpha = 0.8
+        ctx.globalAlpha = 0.6
         ctx.fillStyle = '#6366f1'
         ctx.beginPath()
-        ctx.arc(node.x, node.y, 2, 0, Math.PI * 2)
+        ctx.arc(node.x, node.y, 1.5, 0, Math.PI * 2)
         ctx.fill()
       })
 
@@ -228,7 +235,7 @@ export default function DynamicBackground() {
     animationRef.current = requestAnimationFrame(animate)
 
     // Cleanup
-    const resizeHandler = throttle(resizeCanvas, 250)
+    const resizeHandler = throttle(resizeCanvas, 500)
     window.addEventListener('resize', resizeHandler)
     
     addCleanup(() => {
@@ -243,14 +250,17 @@ export default function DynamicBackground() {
         cancelAnimationFrame(animationRef.current)
       }
     }
-  }, [shouldReduceMotion, isVisible, isMounted, isTabVisible, addCleanup])
+  }, [shouldReduceMotion, isVisible, isMounted, isTabVisible, addCleanup, isMobileDevice])
 
-  // Don't render expensive effects if motion is reduced
-  if (shouldReduceMotion) {
+  // Mobile-optimized simple background
+  if (isMobileDevice || shouldReduceMotion) {
     return (
       <div ref={ref} className="fixed inset-0 -z-10 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900" />
         <div className="absolute inset-0 bg-gradient-to-tr from-primary-900/10 via-transparent to-secondary-900/10" />
+        {/* Simple static elements for mobile */}
+        <div className="absolute top-20 left-20 w-32 h-32 bg-primary-500/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-20 right-20 w-40 h-40 bg-secondary-500/5 rounded-full blur-3xl" />
       </div>
     )
   }
@@ -261,20 +271,20 @@ export default function DynamicBackground() {
       <div className="absolute inset-0 bg-gradient-to-br from-gray-900/95 via-gray-900/80 to-gray-900/95" />
       <div className="absolute inset-0 bg-gradient-to-tr from-primary-900/20 via-transparent to-secondary-900/20" />
       
-      {/* Neural network canvas - only when visible */}
-      {isVisible && (
+      {/* Neural network canvas - only when visible and not mobile */}
+      {isVisible && !isMobileDevice && (
         <canvas
           ref={canvasRef}
-          className="absolute inset-0 opacity-40"
+          className="absolute inset-0 opacity-30"
           style={{ mixBlendMode: 'screen' }}
         />
       )}
 
-      {/* Simplified floating particles */}
-      {isVisible && particles.map((particle) => (
+      {/* Simplified floating particles - only for desktop */}
+      {isVisible && !isMobileDevice && particles.map((particle) => (
         <motion.div
           key={particle.id}
-          className="absolute rounded-full opacity-30 blur-sm"
+          className="absolute rounded-full opacity-20 blur-sm"
           style={{
             left: `${particle.x}%`,
             top: `${particle.y}%`,
@@ -284,10 +294,10 @@ export default function DynamicBackground() {
             boxShadow: `0 0 ${particle.size * 2}px ${particle.color}`,
           }}
           animate={{
-            x: ['-20px', '20px', '-20px'],
-            y: ['-25px', '25px', '-25px'],
-            opacity: [0.1, 0.4, 0.1],
-            scale: [0.8, 1.2, 0.8],
+            x: ['-15px', '15px', '-15px'],
+            y: ['-20px', '20px', '-20px'],
+            opacity: [0.1, 0.3, 0.1],
+            scale: [0.8, 1.1, 0.8],
           }}
           transition={{
             duration: particle.duration,
@@ -298,42 +308,42 @@ export default function DynamicBackground() {
         />
       ))}
 
-      {/* Simplified mouse-following gradient */}
-      {isVisible && (
+      {/* Simplified mouse-following gradient - only for desktop */}
+      {isVisible && !isMobileDevice && (
         <motion.div
-          className="absolute w-80 h-80 rounded-full opacity-20 blur-3xl pointer-events-none"
+          className="absolute w-60 h-60 rounded-full opacity-10 blur-3xl pointer-events-none"
           style={{
             left: `${mousePosition.x}%`,
             top: `${mousePosition.y}%`,
             transform: 'translate(-50%, -50%)',
             background: isMouseMoving 
-              ? 'radial-gradient(circle, rgba(99, 102, 241, 0.4) 0%, rgba(6, 182, 212, 0.2) 50%, transparent 100%)'
-              : 'radial-gradient(circle, rgba(99, 102, 241, 0.2) 0%, rgba(6, 182, 212, 0.1) 50%, transparent 100%)',
+              ? 'radial-gradient(circle, rgba(99, 102, 241, 0.3) 0%, rgba(6, 182, 212, 0.1) 50%, transparent 100%)'
+              : 'radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, rgba(6, 182, 212, 0.05) 50%, transparent 100%)',
           }}
           animate={{
-            scale: isMouseMoving ? [1, 1.1, 1] : 1,
+            scale: isMouseMoving ? [1, 1.05, 1] : 1,
           }}
           transition={{
-            duration: 1.5,
+            duration: 2,
             repeat: isMouseMoving ? Infinity : 0,
             ease: 'easeInOut',
           }}
         />
       )}
 
-      {/* Simplified glowing orbs */}
-      {isVisible && (
+      {/* Simplified glowing orbs - only for desktop */}
+      {isVisible && !isMobileDevice && (
         <>
           {/* Cyber Turtle Logo - Floating Element */}
           <motion.div 
-            className="absolute top-1/4 left-1/4 w-32 h-32"
+            className="absolute top-1/4 left-1/4 w-24 h-24"
             animate={{
-              scale: [1, 1.1, 1],
-              opacity: [0.3, 0.6, 0.3],
-              rotate: [0, 5, -5, 0],
+              scale: [1, 1.05, 1],
+              opacity: [0.2, 0.4, 0.2],
+              rotate: [0, 2, -2, 0],
             }}
             transition={{
-              duration: 8,
+              duration: 10,
               repeat: Infinity,
               ease: 'easeInOut',
             }}
@@ -342,44 +352,44 @@ export default function DynamicBackground() {
               <img 
                 src="/cyber-turtle-logo.jpg" 
                 alt="Cyber Turtle Logo" 
-                className="w-full h-full object-cover rounded-full shadow-2xl"
+                className="w-full h-full object-cover rounded-full shadow-xl"
                 style={{
-                  filter: 'drop-shadow(0 0 20px rgba(6, 182, 212, 0.5)) drop-shadow(0 0 40px rgba(99, 102, 241, 0.3))',
+                  filter: 'drop-shadow(0 0 15px rgba(6, 182, 212, 0.3)) drop-shadow(0 0 30px rgba(99, 102, 241, 0.2))',
                 }}
               />
-              <div className="absolute inset-0 rounded-full bg-gradient-to-br from-primary-500/20 to-secondary-500/20 blur-xl" />
+              <div className="absolute inset-0 rounded-full bg-gradient-to-br from-primary-500/10 to-secondary-500/10 blur-xl" />
             </div>
           </motion.div>
           
           <motion.div 
-            className="absolute top-3/4 right-1/4 w-24 h-24 bg-gradient-to-br from-secondary-500/20 to-accent-500/20 rounded-full blur-3xl"
+            className="absolute top-3/4 right-1/4 w-16 h-16 bg-gradient-to-br from-secondary-500/10 to-accent-500/10 rounded-full blur-3xl"
             animate={{
-              scale: [1, 1.3, 1],
-              opacity: [0.1, 0.25, 0.1],
+              scale: [1, 1.2, 1],
+              opacity: [0.05, 0.15, 0.05],
             }}
             transition={{
-              duration: 6,
+              duration: 8,
               repeat: Infinity,
               ease: 'easeInOut',
-              delay: 2,
+              delay: 3,
             }}
           />
         </>
       )}
 
-      {/* Simplified ambient light */}
-      {isVisible && (
+      {/* Simplified ambient light - only for desktop */}
+      {isVisible && !isMobileDevice && (
         <motion.div
-          className="absolute inset-0 opacity-10"
+          className="absolute inset-0 opacity-5"
           animate={{
             background: [
-              'radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.1) 0%, transparent 50%)',
-              'radial-gradient(circle at 80% 80%, rgba(6, 182, 212, 0.1) 0%, transparent 50%)',
-              'radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.1) 0%, transparent 50%)',
+              'radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.05) 0%, transparent 50%)',
+              'radial-gradient(circle at 80% 80%, rgba(6, 182, 212, 0.05) 0%, transparent 50%)',
+              'radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.05) 0%, transparent 50%)',
             ],
           }}
           transition={{
-            duration: 12,
+            duration: 15,
             repeat: Infinity,
             ease: 'easeInOut',
           }}

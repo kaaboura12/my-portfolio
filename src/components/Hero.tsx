@@ -28,30 +28,34 @@ export default function Hero() {
   const [isTyping, setIsTyping] = useState(true)
   const [particles, setParticles] = useState<Particle[]>([])
   const [isMounted, setIsMounted] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
   
-  const y = useTransform(scrollY, [0, 500], [0, 250])
+  const y = useTransform(scrollY, [0, 500], [0, isMobile ? 100 : 250])
   const opacity = useTransform(scrollY, [0, 300], [1, 0])
 
-  // Set mounted state to prevent hydration issues
+  // Set mounted state and detect mobile
   useEffect(() => {
     setIsMounted(true)
+    setIsMobile(window.innerWidth < 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent))
   }, [])
 
-  // Generate particles only on client side
+  // Generate particles only on client side and not on mobile
   useEffect(() => {
-    if (isMounted) {
-      const generatedParticles: Particle[] = Array.from({ length: 20 }, (_, i) => ({
+    if (isMounted && !isMobile) {
+      const generatedParticles: Particle[] = Array.from({ length: 8 }, (_, i) => ({
         id: i,
         left: Math.random() * 100,
         top: Math.random() * 100,
-        duration: Math.random() * 3 + 2,
-        delay: Math.random() * 2,
+        duration: Math.random() * 4 + 3,
+        delay: Math.random() * 3,
       }))
       setParticles(generatedParticles)
     }
-  }, [isMounted])
+  }, [isMounted, isMobile])
 
   useEffect(() => {
+    if (isMobile) return // Disable mouse tracking on mobile
+    
     const handleMouseMove = (e: MouseEvent) => {
       setMousePosition({
         x: (e.clientX - window.innerWidth / 2) / window.innerWidth,
@@ -59,9 +63,9 @@ export default function Hero() {
       })
     }
 
-    window.addEventListener('mousemove', handleMouseMove)
+    window.addEventListener('mousemove', handleMouseMove, { passive: true })
     return () => window.removeEventListener('mousemove', handleMouseMove)
-  }, [])
+  }, [isMobile])
 
   // Typing animation effect
   useEffect(() => {
@@ -108,103 +112,111 @@ export default function Hero() {
 
   return (
     <section id="home" className="relative min-h-screen flex items-center justify-center overflow-hidden">
-      {/* Enhanced Floating Elements */}
-      <motion.div
-        className="absolute top-20 left-20 w-20 h-20 bg-gradient-to-r from-primary-500/30 to-secondary-500/30 rounded-full blur-xl"
-        animate={{
-          x: mousePosition.x * 60,
-          y: mousePosition.y * 60,
-          scale: [1, 1.3, 1],
-          rotate: [0, 180, 360],
-        }}
-        transition={{
-          x: { duration: 0.5 },
-          y: { duration: 0.5 },
-          scale: { duration: 4, repeat: Infinity, ease: "easeInOut" },
-          rotate: { duration: 20, repeat: Infinity, ease: "linear" },
-        }}
-      />
-      
-      <motion.div
-        className="absolute top-40 right-32 w-16 h-16 bg-gradient-to-r from-accent-500/30 to-primary-500/30 rounded-full blur-lg"
-        animate={{
-          x: mousePosition.x * -40,
-          y: mousePosition.y * -40,
-          scale: [1, 1.4, 1],
-          rotate: [0, -180, -360],
-        }}
-        transition={{
-          x: { duration: 0.7 },
-          y: { duration: 0.7 },
-          scale: { duration: 5, repeat: Infinity, ease: "easeInOut" },
-          rotate: { duration: 15, repeat: Infinity, ease: "linear" },
-        }}
-      />
-      
-      <motion.div
-        className="absolute bottom-32 left-40 w-24 h-24 bg-gradient-to-r from-secondary-500/30 to-accent-500/30 rounded-full blur-2xl"
-        animate={{
-          x: mousePosition.x * 50,
-          y: mousePosition.y * 50,
-          scale: [1, 1.2, 1],
-          rotate: [0, 90, 180, 270, 360],
-        }}
-        transition={{
-          x: { duration: 0.8 },
-          y: { duration: 0.8 },
-          scale: { duration: 6, repeat: Infinity, ease: "easeInOut" },
-          rotate: { duration: 25, repeat: Infinity, ease: "linear" },
-        }}
-      />
+      {/* Enhanced Floating Elements - Only on desktop */}
+      {!isMobile && (
+        <>
+          <motion.div
+            className="absolute top-20 left-20 w-20 h-20 bg-gradient-to-r from-primary-500/20 to-secondary-500/20 rounded-full blur-xl"
+            animate={{
+              x: mousePosition.x * 40,
+              y: mousePosition.y * 40,
+              scale: [1, 1.2, 1],
+              rotate: [0, 180, 360],
+            }}
+            transition={{
+              x: { duration: 0.8 },
+              y: { duration: 0.8 },
+              scale: { duration: 6, repeat: Infinity, ease: "easeInOut" },
+              rotate: { duration: 30, repeat: Infinity, ease: "linear" },
+            }}
+          />
+          
+          <motion.div
+            className="absolute top-40 right-32 w-16 h-16 bg-gradient-to-r from-accent-500/20 to-primary-500/20 rounded-full blur-lg"
+            animate={{
+              x: mousePosition.x * -30,
+              y: mousePosition.y * -30,
+              scale: [1, 1.3, 1],
+              rotate: [0, -180, -360],
+            }}
+            transition={{
+              x: { duration: 1 },
+              y: { duration: 1 },
+              scale: { duration: 8, repeat: Infinity, ease: "easeInOut" },
+              rotate: { duration: 25, repeat: Infinity, ease: "linear" },
+            }}
+          />
+          
+          <motion.div
+            className="absolute bottom-32 left-40 w-24 h-24 bg-gradient-to-r from-secondary-500/20 to-accent-500/20 rounded-full blur-2xl"
+            animate={{
+              x: mousePosition.x * 35,
+              y: mousePosition.y * 35,
+              scale: [1, 1.1, 1],
+              rotate: [0, 90, 180, 270, 360],
+            }}
+            transition={{
+              x: { duration: 1.2 },
+              y: { duration: 1.2 },
+              scale: { duration: 10, repeat: Infinity, ease: "easeInOut" },
+              rotate: { duration: 40, repeat: Infinity, ease: "linear" },
+            }}
+          />
+        </>
+      )}
 
-      {/* Enhanced Floating Icons */}
-      <motion.div
-        className="absolute top-32 left-1/4 text-primary-400/40"
-        animate={{
-          y: [-25, 25, -25],
-          rotate: [0, 360],
-          scale: [1, 1.1, 1],
-        }}
-        transition={{
-          y: { duration: 4, repeat: Infinity, ease: "easeInOut" },
-          rotate: { duration: 20, repeat: Infinity, ease: "linear" },
-          scale: { duration: 3, repeat: Infinity, ease: "easeInOut" },
-        }}
-      >
-        <Code className="w-10 h-10" />
-      </motion.div>
-      
-      <motion.div
-        className="absolute top-1/4 right-1/4 text-secondary-400/40"
-        animate={{
-          y: [25, -25, 25],
-          rotate: [0, -360],
-          scale: [1, 1.2, 1],
-        }}
-        transition={{
-          y: { duration: 5, repeat: Infinity, ease: "easeInOut" },
-          rotate: { duration: 15, repeat: Infinity, ease: "linear" },
-          scale: { duration: 4, repeat: Infinity, ease: "easeInOut" },
-        }}
-      >
-        <Zap className="w-8 h-8" />
-      </motion.div>
-      
-      <motion.div
-        className="absolute bottom-1/4 right-1/3 text-accent-400/40"
-        animate={{
-          y: [-20, 20, -20],
-          rotate: [0, 180, 360],
-          scale: [1, 1.15, 1],
-        }}
-        transition={{
-          y: { duration: 3, repeat: Infinity, ease: "easeInOut" },
-          rotate: { duration: 12, repeat: Infinity, ease: "linear" },
-          scale: { duration: 5, repeat: Infinity, ease: "easeInOut" },
-        }}
-      >
-        <Sparkles className="w-9 h-9" />
-      </motion.div>
+      {/* Enhanced Floating Icons - Only on desktop */}
+      {!isMobile && (
+        <>
+          <motion.div
+            className="absolute top-32 left-1/4 text-primary-400/30"
+            animate={{
+              y: [-20, 20, -20],
+              rotate: [0, 360],
+              scale: [1, 1.05, 1],
+            }}
+            transition={{
+              y: { duration: 6, repeat: Infinity, ease: "easeInOut" },
+              rotate: { duration: 30, repeat: Infinity, ease: "linear" },
+              scale: { duration: 4, repeat: Infinity, ease: "easeInOut" },
+            }}
+          >
+            <Code className="w-8 h-8" />
+          </motion.div>
+          
+          <motion.div
+            className="absolute top-1/4 right-1/4 text-secondary-400/30"
+            animate={{
+              y: [20, -20, 20],
+              rotate: [0, -360],
+              scale: [1, 1.1, 1],
+            }}
+            transition={{
+              y: { duration: 8, repeat: Infinity, ease: "easeInOut" },
+              rotate: { duration: 25, repeat: Infinity, ease: "linear" },
+              scale: { duration: 6, repeat: Infinity, ease: "easeInOut" },
+            }}
+          >
+            <Zap className="w-7 h-7" />
+          </motion.div>
+          
+          <motion.div
+            className="absolute bottom-1/4 right-1/3 text-accent-400/30"
+            animate={{
+              y: [-15, 15, -15],
+              rotate: [0, 180, 360],
+              scale: [1, 1.08, 1],
+            }}
+            transition={{
+              y: { duration: 5, repeat: Infinity, ease: "easeInOut" },
+              rotate: { duration: 20, repeat: Infinity, ease: "linear" },
+              scale: { duration: 7, repeat: Infinity, ease: "easeInOut" },
+            }}
+          >
+            <Sparkles className="w-8 h-8" />
+          </motion.div>
+        </>
+      )}
 
       {/* Main Content */}
       <motion.div
@@ -389,20 +401,20 @@ export default function Hero() {
         </div>
       </motion.div>
 
-      {/* Enhanced Floating Particles - Only render on client */}
-      {isMounted && (
+      {/* Enhanced Floating Particles - Only render on client and desktop */}
+      {isMounted && !isMobile && (
         <div className="absolute inset-0 pointer-events-none">
           {particles.map((particle) => (
             <motion.div
               key={particle.id}
-              className="absolute w-1 h-1 bg-white/30 rounded-full"
+              className="absolute w-1 h-1 bg-white/20 rounded-full"
               style={{
                 left: `${particle.left}%`,
                 top: `${particle.top}%`,
               }}
               animate={{
-                y: [0, -100, 0],
-                opacity: [0, 1, 0],
+                y: [0, -80, 0],
+                opacity: [0, 0.8, 0],
                 scale: [0, 1, 0],
               }}
               transition={{
