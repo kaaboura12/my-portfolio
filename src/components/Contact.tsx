@@ -1,7 +1,7 @@
 'use client'
 
 import { motion, useInView } from 'framer-motion'
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { Mail, Phone, MapPin, Send, Github, Linkedin, Facebook, Instagram, MessageSquare, CheckCircle, AlertCircle, Clock, Sparkles, Heart } from 'lucide-react'
 
 const contactInfo = [
@@ -64,7 +64,25 @@ const socialLinks = [
 
 export default function Contact() {
   const ref = useRef(null)
-  const isInView = useInView(ref, { once: true, amount: 0.2 })
+  const isInView = useInView(ref, { once: true, amount: 0.1, margin: "-10% 0px" })
+  const [isMobile, setIsMobile] = useState(false)
+  const [forceVisible, setForceVisible] = useState(false)
+
+  // Detect mobile and force visibility after timeout
+  useEffect(() => {
+    const mobile = window.innerWidth < 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+    setIsMobile(mobile)
+    
+    // Force visibility on mobile after 2 seconds if not detected
+    if (mobile) {
+      const timer = setTimeout(() => {
+        setForceVisible(true)
+      }, 2000)
+      return () => clearTimeout(timer)
+    }
+  }, [])
+
+  const shouldAnimate = isInView || forceVisible
   
   const [formData, setFormData] = useState({
     name: '',
@@ -150,9 +168,9 @@ export default function Contact() {
       })
 
       if (response.ok) {
-        setSubmitStatus('success')
-        setFormData({ name: '', email: '', subject: '', message: '' })
-        setFieldErrors({})
+      setSubmitStatus('success')
+      setFormData({ name: '', email: '', subject: '', message: '' })
+      setFieldErrors({})
       } else {
         throw new Error('Failed to send message')
       }
@@ -181,8 +199,8 @@ export default function Contact() {
       <div className="max-w-7xl mx-auto">
         {/* Enhanced Section Header */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          initial={isMobile ? false : { opacity: 0, y: 20 }}
+          animate={shouldAnimate ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.6 }}
           className="text-center mb-16"
         >

@@ -1,7 +1,7 @@
 'use client'
 
 import { motion, useInView } from 'framer-motion'
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { ExternalLink, Github, Award, Code, Zap, Database, Globe, Smartphone, Monitor, Car, Palette, Gamepad2, Calendar, Users, Trophy, Filter, Grid, List, Star } from 'lucide-react'
 
 const projects = [
@@ -139,10 +139,28 @@ const categories = ['All', 'Web Development', 'Mobile & Web Development', 'Deskt
 
 export default function Projects() {
   const ref = useRef(null)
-  const isInView = useInView(ref, { once: true, amount: 0.2 })
+  const isInView = useInView(ref, { once: true, amount: 0.1, margin: "-10% 0px" })
   const [selectedCategory, setSelectedCategory] = useState('All')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [hoveredProject, setHoveredProject] = useState<string | null>(null)
+  const [isMobile, setIsMobile] = useState(false)
+  const [forceVisible, setForceVisible] = useState(false)
+
+  // Detect mobile and force visibility after timeout
+  useEffect(() => {
+    const mobile = window.innerWidth < 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+    setIsMobile(mobile)
+    
+    // Force visibility on mobile after 2 seconds if not detected
+    if (mobile) {
+      const timer = setTimeout(() => {
+        setForceVisible(true)
+      }, 2000)
+      return () => clearTimeout(timer)
+    }
+  }, [])
+
+  const shouldAnimate = isInView || forceVisible
 
   const filteredProjects = selectedCategory === 'All' 
     ? projects 
@@ -202,8 +220,8 @@ export default function Projects() {
       <div className="max-w-7xl mx-auto">
         {/* Enhanced Section Header */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          initial={isMobile ? false : { opacity: 0, y: 20 }}
+          animate={shouldAnimate ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.6 }}
           className="text-center mb-16"
         >
@@ -225,8 +243,8 @@ export default function Projects() {
 
         {/* Enhanced Filter and View Controls */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          initial={isMobile ? false : { opacity: 0, y: 20 }}
+          animate={shouldAnimate ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.6, delay: 0.2 }}
           className="flex flex-col sm:flex-row justify-between items-center mb-12 gap-4"
         >
@@ -281,7 +299,7 @@ export default function Projects() {
         <motion.div
           variants={containerVariants}
           initial="hidden"
-          animate={isInView ? "visible" : "hidden"}
+          animate={shouldAnimate ? "visible" : "hidden"}
           className={`grid gap-8 mb-20 ${
             viewMode === 'grid' 
               ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' 

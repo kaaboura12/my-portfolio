@@ -1,7 +1,7 @@
 'use client'
 
 import { motion, useInView } from 'framer-motion'
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { Code, Database, Palette, Globe, Award, Target, Zap, BookOpen, Monitor, Star, CheckCircle, TrendingUp, Heart, GraduationCap, Briefcase } from 'lucide-react'
 
 const skills = [
@@ -129,9 +129,28 @@ const interests = [
 
 export default function About() {
   const ref = useRef(null)
-  const isInView = useInView(ref, { once: true, amount: 0.2 })
+  // More aggressive mobile-friendly intersection observer
+  const isInView = useInView(ref, { once: true, amount: 0.1, margin: "-10% 0px" })
   const [, setHoveredSkill] = useState<string | null>(null)
+  const [isMobile, setIsMobile] = useState(false)
+  const [forceVisible, setForceVisible] = useState(false)
 
+  // Detect mobile and force visibility after timeout
+  useEffect(() => {
+    const mobile = window.innerWidth < 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+    setIsMobile(mobile)
+    
+    // Force visibility on mobile after 2 seconds if not detected
+    if (mobile) {
+      const timer = setTimeout(() => {
+        setForceVisible(true)
+      }, 2000)
+      return () => clearTimeout(timer)
+    }
+  }, [])
+
+  const shouldAnimate = isInView || forceVisible
+  
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -188,33 +207,72 @@ export default function About() {
   return (
     <section id="about" className="py-20 px-4 sm:px-6 lg:px-8" ref={ref}>
       <div className="max-w-7xl mx-auto">
-        {/* Enhanced Section Header */}
+        {/* Section Header - Always visible on mobile */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          initial={isMobile ? false : { opacity: 0, y: 20 }}
+          animate={shouldAnimate ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.6 }}
           className="text-center mb-16"
         >
           <motion.div
             className="inline-flex items-center px-4 py-2 rounded-full bg-gradient-to-r from-primary-500/20 to-secondary-500/20 border border-primary-500/30 text-primary-400 text-sm font-medium mb-4"
-            whileHover={{ scale: 1.05 }}
+            whileHover={{ scale: isMobile ? 1 : 1.05 }}
           >
-            <Star className="w-4 h-4 mr-2" />
-            Get to know me
+            <GraduationCap className="w-4 h-4 mr-2" />
+            About Me
           </motion.div>
           <h2 className="text-4xl sm:text-5xl font-bold text-white mb-6">
-            About <span className="gradient-text">Me</span>
+            Know <span className="gradient-text">Who I Am</span>
           </h2>
-          <p className="text-xl text-gray-400 max-w-3xl mx-auto">
-            Computer Science Engineering student passionate about development and innovation.
-          </p>
+          <div className="max-w-4xl mx-auto space-y-6">
+            <p className="text-xl text-gray-300 leading-relaxed">
+              I&apos;m a passionate Computer Engineering student with a strong foundation in software development and a keen interest in emerging technologies. Currently pursuing my degree while actively seeking internship opportunities to apply my skills in real-world projects.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+              <motion.div 
+                className="glass-dark p-6 rounded-xl border border-white/10"
+                whileHover={isMobile ? {} : { scale: 1.02, y: -2 }}
+                initial={isMobile ? false : { opacity: 0, y: 20 }}
+                animate={shouldAnimate ? { opacity: 1, y: 0 } : {}}
+                transition={{ duration: 0.5, delay: 0.2 }}
+              >
+                <Target className="w-8 h-8 text-primary-400 mb-4" />
+                <h3 className="text-lg font-semibold text-white mb-2">Goal-Oriented</h3>
+                <p className="text-gray-400 text-sm">Focused on delivering high-quality solutions and continuous learning in the field of technology.</p>
+              </motion.div>
+              
+              <motion.div 
+                className="glass-dark p-6 rounded-xl border border-white/10"
+                whileHover={isMobile ? {} : { scale: 1.02, y: -2 }}
+                initial={isMobile ? false : { opacity: 0, y: 20 }}
+                animate={shouldAnimate ? { opacity: 1, y: 0 } : {}}
+                transition={{ duration: 0.5, delay: 0.3 }}
+              >
+                <Zap className="w-8 h-8 text-secondary-400 mb-4" />
+                <h3 className="text-lg font-semibold text-white mb-2">Quick Learner</h3>
+                <p className="text-gray-400 text-sm">Adaptable to new technologies and frameworks, always eager to expand my technical expertise.</p>
+              </motion.div>
+              
+              <motion.div 
+                className="glass-dark p-6 rounded-xl border border-white/10"
+                whileHover={isMobile ? {} : { scale: 1.02, y: -2 }}
+                initial={isMobile ? false : { opacity: 0, y: 20 }}
+                animate={shouldAnimate ? { opacity: 1, y: 0 } : {}}
+                transition={{ duration: 0.5, delay: 0.4 }}
+              >
+                <Heart className="w-8 h-8 text-accent-400 mb-4" />
+                <h3 className="text-lg font-semibold text-white mb-2">Team Player</h3>
+                <p className="text-gray-400 text-sm">Excellent communication skills and collaborative approach to problem-solving.</p>
+              </motion.div>
+            </div>
+          </div>
         </motion.div>
 
         {/* Enhanced Stats Section */}
         <motion.div
           variants={containerVariants}
           initial="hidden"
-          animate={isInView ? "visible" : "hidden"}
+          animate={shouldAnimate ? "visible" : "hidden"}
           className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-20"
         >
           {stats.map((stat, index) => (
@@ -240,7 +298,7 @@ export default function About() {
           {/* Enhanced Personal Info & Languages */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
-            animate={isInView ? { opacity: 1, x: 0 } : {}}
+            animate={shouldAnimate ? { opacity: 1, x: 0 } : {}}
             transition={{ duration: 0.6, delay: 0.2 }}
             className="space-y-6"
           >
@@ -287,7 +345,7 @@ export default function About() {
                     key={index} 
                     className="flex items-center justify-between p-3 rounded-lg bg-gray-800/50 border border-gray-700/50 hover:border-gray-600/50 transition-all duration-300"
                     initial={{ opacity: 0, x: -20 }}
-                    animate={isInView ? { opacity: 1, x: 0 } : {}}
+                    animate={shouldAnimate ? { opacity: 1, x: 0 } : {}}
                     transition={{ duration: 0.5, delay: index * 0.1 }}
                     whileHover={{ scale: 1.02, x: 5 }}
                   >
@@ -331,7 +389,7 @@ export default function About() {
           {/* Enhanced Skills */}
           <motion.div
             initial={{ opacity: 0, x: 20 }}
-            animate={isInView ? { opacity: 1, x: 0 } : {}}
+            animate={shouldAnimate ? { opacity: 1, x: 0 } : {}}
             transition={{ duration: 0.6, delay: 0.4 }}
             className="space-y-6"
           >
@@ -347,7 +405,7 @@ export default function About() {
               <motion.div
                 key={index}
                 initial={{ opacity: 0, y: 20 }}
-                animate={isInView ? { opacity: 1, y: 0 } : {}}
+                animate={shouldAnimate ? { opacity: 1, y: 0 } : {}}
                 transition={{ duration: 0.5, delay: 0.1 * index }}
                 className="glass-dark p-6 rounded-2xl border border-white/10 hover:border-white/20 transition-all duration-300"
                 whileHover={{ y: -2 }}
@@ -383,7 +441,7 @@ export default function About() {
         {/* Enhanced Experience & Achievements Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          animate={shouldAnimate ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.6, delay: 0.6 }}
           className="mb-16"
         >
@@ -409,7 +467,7 @@ export default function About() {
               <motion.div
                 key={index}
                 initial={{ opacity: 0, x: -20 }}
-                animate={isInView ? { opacity: 1, x: 0 } : {}}
+                animate={shouldAnimate ? { opacity: 1, x: 0 } : {}}
                 transition={{ duration: 0.6, delay: 0.2 * index }}
                 className="glass-dark p-6 rounded-2xl border border-white/10 hover:border-white/20 transition-all duration-300 group"
                 whileHover={{ y: -3, scale: 1.01 }}
@@ -445,7 +503,7 @@ export default function About() {
               <motion.div
                 key={index}
                 initial={{ opacity: 0, x: 20 }}
-                animate={isInView ? { opacity: 1, x: 0 } : {}}
+                animate={shouldAnimate ? { opacity: 1, x: 0 } : {}}
                 transition={{ duration: 0.6, delay: 0.2 * (index + 1) }}
                 className="glass-dark p-6 rounded-2xl border border-white/10 hover:border-white/20 transition-all duration-300 group"
                 whileHover={{ y: -3, scale: 1.01 }}

@@ -8,39 +8,27 @@ import Footer from '@/components/Footer'
 
 export default function Home() {
   return (
-    <main className="relative min-h-screen z-0">
+    <main className="relative min-h-screen">
       {/* Dynamic Background */}
       <DynamicBackground />
       
       {/* Navigation */}
-      <div className="relative z-20">
-        <Navigation />
-      </div>
+      <Navigation />
       
       {/* Hero Section */}
-      <div className="relative z-10">
-        <Hero />
-      </div>
+      <Hero />
       
       {/* About Section */}
-      <div className="relative z-10">
-        <About />
-      </div>
+      <About />
       
       {/* Projects Section */}
-      <div className="relative z-10">
-        <Projects />
-      </div>
+      <Projects />
       
       {/* Contact Section */}
-      <div className="relative z-10">
-        <Contact />
-      </div>
+      <Contact />
       
       {/* Footer */}
-      <div className="relative z-10">
-        <Footer />
-      </div>
+      <Footer />
     </main>
   )
 }
